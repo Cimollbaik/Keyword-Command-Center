@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Keyword Command Center — Microstock</title>
+<style>
+:root{--bg:#0e1116;--card:#161b22;--card2:#1c232d;--line:#2a3340;--tx:#e6edf3;--mut:#8b96a5;--acc:#6ea8fe;--acc-t:#0e1116;--ok:#4ade80;--warn:#f0b429;--bad:#ff7b72;--r:12px;--f:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+[data-theme=light]{--bg:#f4f6f9;--card:#fff;--card2:#f1f4f8;--line:#dde2e9;--tx:#1b1f24;--mut:#667085;--acc:#2563eb;--acc-t:#fff;--ok:#15803d;--warn:#b45309;--bad:#dc2626}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.5 var(--f)}
+header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;padding:10px 16px;flex-wrap:wrap}
+h1{font-size:16px;margin:0;flex:1 1 auto;white-space:nowrap}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+button,select,input,textarea{font:inherit;color:inherit}
+.tabb{background:none;border:0;padding:7px 12px;border-radius:8px;color:var(--mut);cursor:pointer}
+.tabb.on{background:var(--card2);color:var(--tx);font-weight:600}
+main{max-width:1180px;margin:0 auto;padding:16px}
+.tab{display:none}.tab.on{display:block}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:14px}
+.card h3{margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+textarea,input[type=text],input[type=number],select{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+textarea{min-height:140px;resize:vertical;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px}
+.btn{background:var(--acc);color:var(--acc-t);border:0;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer}
+.btn.g{background:var(--card2);color:var(--tx);border:1px solid var(--line)}
+.btn.s{padding:3px 9px;font-size:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:10px 14px}
+.stat b{display:block;font-size:22px}.stat span{color:var(--mut);font-size:12px}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--mut);font-weight:500;font-size:12px}
+.bar{height:6px;border-radius:3px;background:var(--card2);min-width:60px}.bar i{display:block;height:100%;border-radius:3px;background:var(--acc)}
+.chip{display:inline-block;background:var(--card2);border:1px solid var(--line);border-radius:99px;padding:2px 10px;margin:2px;font-size:12px;cursor:pointer}
+.chip:hover{border-color:var(--acc)}
+.tag{font-size:11px;padding:1px 7px;border-radius:6px}
+.hot{background:#4ade8022;color:var(--ok)}.mid{background:#f0b42922;color:var(--warn)}.low{background:var(--card2);color:var(--mut)}
+.mut{color:var(--mut)}.bad{color:var(--bad)}.ok{color:var(--ok)}
+small{color:var(--mut)}
+label{font-size:12px;color:var(--mut);display:block;margin:8px 0 3px}
+.tv{display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line)}
+.tv:last-child{border:0}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--acc);color:var(--acc-t);padding:8px 16px;border-radius:8px;opacity:0;pointer-events:none;transition:.2s;z-index:9}
+#toast.on{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <h1>🔎 Keyword Command Center</h1>
+  <nav id="nav">
+    <button class="tabb on" data-act="tab" data-v="input">1 · Input</button>
+    <button class="tabb" data-act="tab" data-v="analisis">2 · Analisis</button>
+    <button class="tabb" data-act="tab" data-v="gap">3 · Gap</button>
+    <button class="tabb" data-act="tab" data-v="gen">4 · Generator <span id="selN"></span></button>
+    <button class="tabb" data-act="tab" data-v="hist">5 · Riwayat</button>
+  </nav>
+  <button class="btn g s" data-act="theme">◐ Tema</button>
+</header>
+<main>
+
+<section class="tab on" id="t-input">
+  <div class="grid">
+    <div class="card"><h3>Data mentah (autocomplete, Google Trends, dll)</h3>
+      <textarea id="raw" placeholder="Satu entri per baris, atau pisahkan dengan koma.&#10;Urutan atas = lebih relevan/populer."></textarea>
+      <small>Dipisah per baris, koma, titik koma, atau tab. Urutan baris dipakai sebagai bobot posisi.</small></div>
+    <div class="card"><h3>Aset yang sudah dimiliki</h3>
+      <textarea id="owned" placeholder="Nama file, title, atau keyword aset yang sudah ada"></textarea>
+      <div class="row"><input type="file" id="ownedFile" accept=".csv,.txt" hidden>
+      <button class="btn g s" data-act="pick">Import CSV/TXT dari tracker</button></div></div>
+  </div>
+  <div class="grid">
+    <div class="card"><h3>Title kompetitor (opsional)</h3>
+      <textarea id="comp" placeholder="Tempel title/keyword aset kompetitor, satu per baris"></textarea></div>
+    <div class="card"><h3>Aturan klaster kustom (opsional)</h3>
+      <textarea id="rules" placeholder="Format: Nama Klaster: kata1, kata2, kata3&#10;Renewable Energy: solar, panel, sun, wind"></textarea></div>
+  </div>
+  <div class="row"><button class="btn" data-act="run">Analisis sekarang</button>
+  <button class="btn g" data-act="sample">Isi contoh data</button>
+  <button class="btn g" data-act="clear">Kosongkan</button></div>
+</section>
+
+<section class="tab" id="t-analisis">
+  <div class="stats" id="stats"></div>
+  <div class="card"><h3>Keyword teratas · skor peluang</h3>
+    <small>Skor = frekuensi (55) + bobot posisi (20) + celah/belum punya (25) − tingkat kompetisi dari title kompetitor (maks 15).</small>
+    <div class="tw" id="kwtable"></div></div>
+  <div class="grid">
+    <div class="card"><h3>Klaster tema</h3><div id="clusters"></div></div>
+    <div class="card"><h3>Frasa long-tail (2 kata)</h3><div id="phrases"></div></div>
+  </div>
+  <div class="card"><h3>Analisis kompetitor</h3><div id="compbox"><span class="mut">Isi kolom title kompetitor di tab Input.</span></div></div>
+</section>
+
+<section class="tab" id="t-gap">
+  <div class="grid">
+    <div class="card"><h3>🎯 Peluang: trending tapi belum kamu punya</h3>
+      <div class="row"><button class="btn s" data-act="top10">Pilih 10 teratas</button></div>
+      <div class="tw" id="gapA"></div></div>
+    <div class="card"><h3>✅ Sudah tercover</h3><div id="gapB"></div></div>
+  </div>
+</section>
+
+<section class="tab" id="t-gen">
+  <div class="grid">
+    <div class="card"><h3>Keyword terpilih</h3><div id="selbox"></div>
+      <div class="row"><button class="btn g s" data-act="selclear">Kosongkan pilihan</button></div>
+      <small>Kosong = otomatis memakai 5 peluang teratas. Keyword pertama menjadi subjek utama.</small></div>
+    <div class="card"><h3>Pengaturan</h3>
+      <div class="grid" style="gap:8px;grid-template-columns:1fr 1fr">
+        <div><label>Tipe aset</label><select id="gType"><option value="vector">Vector</option><option value="illustration">Ilustrasi</option><option value="photo">Foto</option><option value="video">Video</option><option value="icon">Icon set</option></select></div>
+        <div><label>Gaya visual</label><input type="text" id="gStyle" placeholder="flat, isometric, 3d..."></div>
+        <div><label>Batas karakter title</label><input type="number" id="gLim" value="200" min="30" max="300"></div>
+        <div><label>Jumlah keyword</label><input type="number" id="gKw" value="50" min="10" max="60"></div>
+      </div>
+      <label>Tambahan kata (opsional)</label><input type="text" id="gMod" placeholder="mis. sustainable, banner, template">
+      <div class="row"><button class="btn" data-act="gen">Generate</button>
+      <button class="btn g" data-act="auto">Auto-queue 5 peluang teratas</button></div></div>
+  </div>
+  <div id="genout"></div>
+  <div class="card"><h3>Antrean export</h3><div class="tw" id="queue"></div>
+    <div class="row"><button class="btn" data-act="csv">Export CSV</button><button class="btn g" data-act="qclear">Kosongkan antrean</button></div>
+    <small>Kolom: filename, title, keywords, category, asset_type, trend_score, prompt, created_at.</small></div>
+</section>
+
+<section class="tab" id="t-hist">
+  <div class="card"><h3>Simpan riset saat ini</h3>
+    <div class="row"><input type="text" id="hName" placeholder="Nama riset (opsional)" style="max-width:320px">
+    <button class="btn" data-act="hsave">Simpan</button></div></div>
+  <div class="card"><h3>Riwayat riset</h3><div id="hlist"></div></div>
+</section>
+</main>
+<div id="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const store={get(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{toast('Penyimpanan penuh/tidak tersedia')}}};
+const STOP=new Set("a an and the with for of in on at to from by or as is are be this that these those it its into over under your you our their his her we my me not no can will just very more most than then so such via per vs vector illustration image photo stock free best new top high quality set pack bundle collection how what where when why who which near".split(" "));
+const CL={
+"Renewable Energy":"solar panel sun energy wind turbine renewable green power electric battery eco sustainable",
+"Technology & AI":"ai artificial intelligence robot tech technology digital data cloud cyber network code software computer chip machine learning blockchain",
+"Business & Finance":"business finance money bank invest investment growth chart team office meeting startup marketing strategy economy crypto",
+"Health & Wellness":"health medical doctor wellness yoga fitness mental care hospital medicine healthy",
+"Food & Drink":"food coffee fruit vegetable cooking recipe drink kitchen meal restaurant",
+"Nature & Travel":"nature travel mountain beach forest tree flower landscape summer vacation sky ocean sea",
+"Holidays & Seasons":"christmas halloween easter holiday year valentine winter autumn spring celebration party festive",
+"Education":"education school student learning book study kids teacher",
+"Lifestyle & People":"family people woman man lifestyle home friends child couple",
+"Culture & Religion":"ramadan eid islamic mosque lantern batik indonesia",
+"Abstract & Pattern":"abstract pattern texture gradient geometric minimal wallpaper banner background"};
+const GEN0="concept design modern clean creative professional banner template graphic element isolated simple abstract digital business web print social media poster flat style trendy minimal colorful bright detail artwork symbol sign icon theme idea innovation future".split(" ");
+const TYPEW={vector:"vector eps scalable flat graphic",photo:"photo photography high resolution realistic",video:"video footage clip 4k motion loop",illustration:"illustration artwork drawing digital art",icon:"icon icons set pictogram symbol ui"};
+const SAMPLE={raw:`solar panel installation
+solar panel roof
+solar energy concept
+solar panel icon
+renewable energy background
+renewable energy infographic
+wind turbine landscape
+green energy banner
+sun power solar farm
+sustainable energy flat design
+solar panels isometric
+clean energy ecology
+electric car charging station
+battery storage energy
+solar farm aerial
+eco friendly home solar
+renewable energy icons
+wind and solar energy`,
+owned:`solar-panel-roof-001.eps
+wind-turbine-landscape-002.jpg
+christmas-tree-vector-003.eps`,
+comp:`Solar panel installation on roof, renewable energy concept, green energy vector illustration
+Solar energy infographic with icons, sustainable power, flat design vector
+Renewable energy banner with wind turbines and solar panels, eco background
+Solar farm aerial view, clean energy landscape, sun power`};
+
+const stem=w=>w.length>3&&w.endsWith('ies')?w.slice(0,-3)+'y':(w.length>3&&w.endsWith('s')&&!/(ss|us|is)$/.test(w))?w.slice(0,-1):w;
+const tok=t=>(String(t).toLowerCase().match(/[a-z0-9\u00C0-\u024F]+/g)||[]).filter(w=>w.length>2&&!STOP.has(w)).map(stem).filter(w=>!STOP.has(w)&&!/^\d+$/.test(w));
+const parse=t=>t.split(/[\n\r,;\t|]+/).map(s=>s.replace(/^\s*\d+[.)]\s*/,'').trim()).filter(Boolean);
+const C=s=>s.replace(/\b[a-z]/g,m=>m.toUpperCase());
+let A=null,S={sel:new Set(),queue:[],last:null};
+
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('on'),1800)}
+function buildCl(){const m=new Map();const add=(n,ws)=>ws.split(/[\s,]+/).filter(Boolean).forEach(w=>{const s=stem(w.toLowerCase());if(!m.has(s))m.set(s,n)});
+  $('#rules').value.split('\n').forEach(l=>{const i=l.indexOf(':');if(i>0)add(l.slice(0,i).trim(),l.slice(i+1))});
+  Object.entries(CL).forEach(([n,w])=>add(n,w));return m}
+
+function analyze(){
+  const items=parse($('#raw').value);
+  if(!items.length){toast('Tempel data mentah dulu');return false}
+  const owned=new Set(parse($('#owned').value).flatMap(tok)),comp=parse($('#comp').value),cm=buildCl();
+  const map={},bi={},cw={};
+  items.forEach((it,i)=>{const t=tok(it),pw=1-.5*i/items.length;
+    new Set(t).forEach(w=>{const o=map[w]||(map[w]={w,c:0,p:0});o.c++;o.p+=pw});
+    for(let j=0;j<t.length-1;j++){const k=t[j]+' '+t[j+1];bi[k]=(bi[k]||0)+1}});
+  comp.forEach(x=>new Set(tok(x)).forEach(w=>cw[w]=(cw[w]||0)+1));
+  const list=Object.values(map);if(!list.length){toast('Tidak ada keyword valid');return false}
+  const max=Math.max(...list.map(o=>o.c));
+  list.forEach(o=>{o.cl=cm.get(o.w)||'Lainnya';o.gap=!owned.has(o.w);o.comp=comp.length?(cw[o.w]||0)/comp.length:null;
+    let s=55*o.c/max+20*(o.p/o.c)+(o.gap?25:0);if(o.comp!==null)s-=15*Math.min(1,o.comp*2);
+    o.score=Math.max(0,Math.min(100,Math.round(s)))});
+  list.sort((a,b)=>b.score-a.score||b.c-a.c);
+  const cls={};list.forEach(o=>{const c=cls[o.cl]||(cls[o.cl]={name:o.cl,w:[],tot:0,own:0});c.w.push(o);c.tot+=o.c;if(!o.gap)c.own++});
+  const clusters=Object.values(cls).sort((a,b)=>b.tot-a.tot);
+  const phrases=Object.entries(bi).sort((a,b)=>b[1]-a[1]).slice(0,20);
+  let cs=null;
+  if(comp.length){cs={n:comp.length,len:Math.round(comp.reduce((a,x)=>a+x.length,0)/comp.length),wc:(comp.reduce((a,x)=>a+x.split(/\s+/).length,0)/comp.length).toFixed(1),
+    top:Object.entries(cw).sort((a,b)=>b[1]-a[1]).slice(0,12),opp:list.filter(o=>!cw[o.w]).slice(0,12)}}
+  A={items,list,clusters,phrases,cs,cm};render();return true}
+
+const lbl=s=>s>=70?['hot','Hot']:s>=45?['mid','Potensi']:['low','Rendah'];
+const chk=w=>`<input type="checkbox" data-act="sel" data-v="${esc(w)}" ${S.sel.has(w)?'checked':''}>`;
+function render(){
+  const {list,clusters,phrases,cs}=A,gaps=list.filter(o=>o.gap);
+  $('#stats').innerHTML=[[A.items.length,'Entri data'],[list.length,'Keyword unik'],[clusters.length,'Klaster'],[gaps.length,'Peluang (gap)']].map(([n,l])=>`<div class="stat"><b>${n}</b><span>${l}</span></div>`).join('');
+  $('#kwtable').innerHTML=`<table><tr><th></th><th>Keyword</th><th>Frek.</th><th>Klaster</th><th>Kompetisi</th><th>Skor</th><th>Status</th></tr>`+
+   list.slice(0,40).map(o=>{const[c,t]=lbl(o.score);return `<tr><td>${chk(o.w)}</td><td><b>${esc(o.w)}</b></td><td>${o.c}</td><td class="mut">${esc(o.cl)}</td><td>${o.comp===null?'–':Math.round(o.comp*100)+'%'}</td><td><div class="bar"><i style="width:${o.score}%"></i></div><small>${o.score}</small> <span class="tag ${c}">${t}</span></td><td>${o.gap?'<span class="ok">Gap</span>':'<span class="mut">Punya</span>'}</td></tr>`}).join('')+'</table>';
+  $('#clusters').innerHTML=clusters.map(c=>`<div style="margin-bottom:10px"><b>${esc(c.name)}</b> <small>· ${c.tot} kemunculan · ${Math.round(100*c.own/c.w.length)}% tercover</small> <button class="btn g s" data-act="selcl" data-v="${esc(c.name)}">pilih</button><div>${c.w.slice(0,10).map(o=>`<span class="chip" data-act="chip" data-v="${esc(o.w)}">${esc(o.w)} <small>${o.c}</small></span>`).join('')}</div></div>`).join('');
+  $('#phrases').innerHTML=phrases.map(([k,n])=>`<span class="chip" data-act="chip" data-v="${esc(k)}">${esc(k)} <small>${n}</small></span>`).join('')||'<span class="mut">Tidak ada frasa.</span>';
+  $('#compbox').innerHTML=cs?`<div class="stats"><div class="stat"><b>${cs.n}</b><span>Title dianalisis</span></div><div class="stat"><b>${cs.len}</b><span>Rata-rata karakter</span></div><div class="stat"><b>${cs.wc}</b><span>Rata-rata kata</span></div></div>
+    <p><b>Kata paling dipakai kompetitor:</b><br>${cs.top.map(([w,n])=>`<span class="chip">${esc(w)} <small>${n}</small></span>`).join('')}</p>
+    <p><b>Kata trending yang belum dipakai kompetitor (kompetisi rendah):</b><br>${cs.opp.map(o=>`<span class="chip" data-act="chip" data-v="${esc(o.w)}">${esc(o.w)}</span>`).join('')||'<span class="mut">–</span>'}</p>`:'<span class="mut">Isi kolom title kompetitor di tab Input.</span>';
+  $('#gapA').innerHTML=`<table><tr><th></th><th>Keyword</th><th>Klaster</th><th>Skor</th></tr>`+gaps.slice(0,30).map(o=>`<tr><td>${chk(o.w)}</td><td><b>${esc(o.w)}</b></td><td class="mut">${esc(o.cl)}</td><td>${o.score}</td></tr>`).join('')+'</table>'+(gaps.length?'':'<p class="mut">Semua keyword sudah tercover.</p>');
+  $('#gapB').innerHTML=list.filter(o=>!o.gap).slice(0,40).map(o=>`<span class="chip">${esc(o.w)}</span>`).join('')||'<span class="mut">Belum ada yang tercover.</span>';
+  updSel()}
+
+function updSel(){const a=[...S.sel];$('#selN').textContent=a.length?`(${a.length})`:'';
+  $('#selbox').innerHTML=a.map(w=>`<span class="chip" data-act="unsel" data-v="${esc(w)}">${esc(w)} ✕</span>`).join('')||'<span class="mut">Belum ada.</span>';
+  $$('input[data-act=sel]').forEach(i=>i.checked=S.sel.has(i.dataset.v))}
+
+function gen(p,o){
+  const main=p[0],rest=p.slice(1),mt=tok(main),
+   T={vector:['vector illustration','isolated on white background'],photo:['photo','with copy space'],video:['video footage','4k seamless loop'],illustration:['illustration','high detail'],icon:['icon set','editable stroke']}[o.type],
+   sty=o.style?o.style+' style':'',
+   cut=s=>{s=s.replace(/\s+/g,' ').trim();return s.length<=o.lim?s:s.slice(0,o.lim).replace(/[\s,]+\S*$/,'').replace(/[,\s]+$/,'')},
+   r3=rest.slice(0,3).join(', ');
+  const titles=[
+    cut(`${C(main)} ${T[0]}${r3?' with '+r3:''}${sty?', '+sty:''}, ${T[1]}`),
+    cut(`${C(main)} concept${rest[0]?' – '+C(rest[0])+(rest[1]?' and '+rest[1]:''):''} for business, web, print and social media design${o.mod?', '+o.mod:''}`),
+    cut(p.slice(0,6).map(C).join(', ')+` ${T[0]}${sty?', '+sty:''}`)];
+  const cl=A?(mt.map(w=>A.cm.get(w)).find(Boolean)||''):'';
+  const clw=A&&cl?A.list.filter(x=>x.cl===cl).map(x=>x.w):[];
+  const ph=A?A.phrases.filter(([k])=>mt.some(w=>k.includes(w))).flatMap(([k])=>k.split(' ')):[];
+  const kws=[...new Set([...p.flatMap(x=>x.split(' ')),...ph,...clw,...(o.style?o.style.split(/[\s,]+/):[]),...(o.mod?o.mod.split(/[\s,]+/):[]),...TYPEW[o.type].split(' '),...GEN0].map(x=>x.toLowerCase().trim()).filter(x=>x.length>1))].slice(0,o.kw);
+  const subj=[main,...rest.slice(0,3)].join(', ');
+  const prompts={
+   mj:`${subj}, ${o.style||'modern clean style'}, balanced composition, soft studio lighting, high detail, copy space, commercial stock quality --ar 3:2 --style raw --no text, watermark, logo`,
+   gen:`Create a ${o.style||'modern'} ${T[0]} of ${subj}. Keep the composition clean with generous copy space, a cohesive color palette, no text, no logos, no watermark, commercial stock quality, suitable for ${o.type==='video'?'looping footage':'print and web use'}.`,
+   vec:`flat vector illustration of ${subj}, ${o.style||'clean geometric shapes'}, limited palette of 5 harmonious colors, smooth gradients, centered composition, plain white background, no text, no watermark, scalable editable shapes`};
+  const sc=A?(A.list.find(x=>x.w===mt[0])||{}).score||0:0;
+  return{main,titles,kws,prompts,score:sc,cat:cl||'General',type:o.type,lim:o.lim}}
+
+const opts=()=>({type:$('#gType').value,style:$('#gStyle').value.trim(),lim:+$('#gLim').value||200,kw:+$('#gKw').value||50,mod:$('#gMod').value.trim()});
+const picks=()=>{if(S.sel.size)return[...S.sel];return A?A.list.filter(o=>o.gap).slice(0,5).map(o=>o.w):[]};
+const ext={vector:'eps',icon:'eps',photo:'jpg',illustration:'jpg',video:'mp4'};
+const slug=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+
+function showGen(){const g=S.last;if(!g)return;
+  $('#genout').innerHTML=`<div class="card"><h3>Title (${esc(g.main)})</h3>`+g.titles.map((t,i)=>`<div class="tv"><input type="radio" name="tv" value="${i}" ${i?'':'checked'}><div style="flex:1" id="ti${i}">${esc(t)}<br><small class="${t.length>g.lim?'bad':''}">${t.length}/${g.lim} karakter · ${['Deskriptif','Konseptual','Long-tail'][i]}</small></div><button class="btn g s" data-act="copy" data-v="#ti${i}">Salin</button></div>`).join('')+
+  `<div class="row"><button class="btn" data-act="addq">+ Tambah ke antrean export</button></div></div>
+  <div class="card"><h3>${g.kws.length} Keyword <button class="btn g s" data-act="copy" data-v="#kwout">Salin</button></h3><textarea id="kwout" style="min-height:90px">${esc(g.kws.join(', '))}</textarea><small>10 keyword pertama paling berpengaruh di Adobe Stock — urutan sudah dari yang paling relevan.</small></div>
+  <div class="grid">`+[['mj','Midjourney'],['gen','Generator umum (Claude, dll)'],['vec','Vector (Recraft/Illustrator-style)']].map(([k,n])=>`<div class="card"><h3>Prompt · ${n} <button class="btn g s" data-act="copy" data-v="#p${k}">Salin</button></h3><textarea id="p${k}" style="min-height:120px">${esc(g.prompts[k])}</textarea></div>`).join('')+'</div>'}
+
+function pushQ(g,ti){S.queue.push({filename:`${slug(g.main)}-${String(S.queue.length+1).padStart(3,'0')}.${ext[g.type]}`,title:g.titles[ti],keywords:g.kws.join(', '),category:g.cat,asset_type:g.type,trend_score:g.score,prompt:g.prompts[g.type==='vector'||g.type==='icon'?'vec':'mj'],created_at:new Date().toISOString().slice(0,10)})}
+function showQ(){$('#queue').innerHTML=S.queue.length?`<table><tr><th>Filename</th><th>Title</th><th>Kw</th><th></th></tr>`+S.queue.map((r,i)=>`<tr><td>${esc(r.filename)}</td><td>${esc(r.title)}</td><td>${r.keywords.split(',').length}</td><td><button class="btn g s" data-act="rmq" data-v="${i}">✕</button></td></tr>`).join('')+'</table>':'<span class="mut">Antrean kosong.</span>'}
+function csv(){if(!S.queue.length)return toast('Antrean kosong');
+  const H=Object.keys(S.queue[0]),q=v=>'"'+String(v).replace(/"/g,'""')+'"';
+  const t='\ufeff'+H.join(',')+'\n'+S.queue.map(r=>H.map(h=>q(r[h])).join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv;charset=utf-8'}));a.download=`microstock-export-${new Date().toISOString().slice(0,10)}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
+
+function hist(){return store.get('mskw_hist',[])}
+function showH(){const h=hist();$('#hlist').innerHTML=h.length?`<table><tr><th>Nama</th><th>Tanggal</th><th>Entri</th><th></th></tr>`+h.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td class="mut">${esc(x.ts.slice(0,16).replace('T',' '))}</td><td>${parse(x.raw).length}</td><td><button class="btn s" data-act="hload" data-v="${x.id}">Buka</button> <button class="btn g s" data-act="hdel" data-v="${x.id}">Hapus</button></td></tr>`).join('')+'</table>':'<span class="mut">Belum ada riset tersimpan.</span>'}
+
+function copy(sel){const e=$(sel),t=e.value!==undefined&&e.tagName==='TEXTAREA'?e.value:e.firstChild?e.firstChild.textContent:e.textContent;
+  (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Tersalin')).catch(()=>{const x=document.createElement('textarea');x.value=t;document.body.appendChild(x);x.select();try{document.execCommand('copy');toast('Tersalin')}catch{}x.remove()})}
+function tab(v){$$('.tab').forEach(e=>e.classList.toggle('on',e.id==='t-'+v));$$('.tabb').forEach(b=>b.classList.toggle('on',b.dataset.v===v));if(v==='hist')showH();window.scrollTo(0,0)}
+
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act,v=b.dataset.v;
+  if(a==='tab')tab(v);
+  else if(a==='theme'){const d=document.documentElement,n=d.dataset.theme==='dark'?'light':'dark';d.dataset.theme=n;store.set('mskw_theme',n)}
+  else if(a==='pick')$('#ownedFile').click();
+  else if(a==='run'){if(analyze())tab('analisis')}
+  else if(a==='sample'){$('#raw').value=SAMPLE.raw;$('#owned').value=SAMPLE.owned;$('#comp').value=SAMPLE.comp;toast('Contoh dimuat')}
+  else if(a==='clear'){['raw','owned','comp','rules'].forEach(i=>$('#'+i).value='');A=null;S.sel.clear();updSel()}
+  else if(a==='sel'){b.checked?S.sel.add(v):S.sel.delete(v);updSel()}
+  else if(a==='chip'){S.sel.add(v);updSel();toast('+ '+v)}
+  else if(a==='unsel'){S.sel.delete(v);updSel()}
+  else if(a==='selclear'){S.sel.clear();updSel()}
+  else if(a==='selcl'){A.clusters.find(c=>c.name===v).w.slice(0,5).forEach(o=>S.sel.add(o.w));updSel();toast('Klaster dipilih')}
+  else if(a==='top10'){A.list.filter(o=>o.gap).slice(0,10).forEach(o=>S.sel.add(o.w));updSel()}
+  else if(a==='gen'){if(!A&&!analyze())return;const p=picks();if(!p.length)return toast('Pilih keyword dulu');S.last=gen(p,opts());showGen()}
+  else if(a==='auto'){if(!A&&!analyze())return;const o=opts(),top=A.list.filter(x=>x.gap).slice(0,5);if(!top.length)return toast('Tidak ada peluang');
+    top.forEach(x=>{const mates=A.list.filter(y=>y.cl===x.cl&&y.w!==x.w).slice(0,3).map(y=>y.w);pushQ(gen([x.w,...mates],o),0)});showQ();toast('5 aset masuk antrean')}
+  else if(a==='addq'){const r=document.querySelector('input[name=tv]:checked');pushQ(S.last,r?+r.value:0);showQ();toast('Ditambahkan')}
+  else if(a==='rmq'){S.queue.splice(+v,1);showQ()}
+  else if(a==='qclear'){S.queue=[];showQ()}
+  else if(a==='csv')csv();
+  else if(a==='copy')copy(v);
+  else if(a==='hsave'){if(!$('#raw').value.trim())return toast('Belum ada data');const h=hist(),top=A?A.list[0].w:'riset';
+    h.unshift({id:Date.now().toString(36),name:$('#hName').value.trim()||`${top} · ${new Date().toISOString().slice(0,10)}`,ts:new Date().toISOString(),raw:$('#raw').value,owned:$('#owned').value,comp:$('#comp').value,rules:$('#rules').value,queue:S.queue,sel:[...S.sel]});
+    store.set('mskw_hist',h.slice(0,30));$('#hName').value='';showH();toast('Riset disimpan')}
+  else if(a==='hload'){const x=hist().find(i=>i.id===v);if(!x)return;$('#raw').value=x.raw;$('#owned').value=x.owned;$('#comp').value=x.comp;$('#rules').value=x.rules||'';S.queue=x.queue||[];S.sel=new Set(x.sel||[]);analyze();showQ();tab('analisis')}
+  else if(a==='hdel'){store.set('mskw_hist',hist().filter(i=>i.id!==v));showH()}
+});
+$('#ownedFile').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{$('#owned').value=($('#owned').value+'\n'+r.result).trim();toast('Data tracker diimpor')};r.readAsText(f);e.target.value=''});
+
+document.documentElement.dataset.theme=store.get('mskw_theme','dark');
+updSel();showQ();
+</script>
+</body>
+</html>
