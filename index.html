@@ -146,7 +146,7 @@ const CL={
 "Health & Wellness":"health medical doctor wellness yoga fitness mental care hospital medicine healthy",
 "Food & Drink":"food coffee fruit vegetable cooking recipe drink kitchen meal restaurant",
 "Nature & Travel":"nature travel mountain beach forest tree flower landscape summer vacation sky ocean sea",
-"Holidays & Seasons":"christmas halloween easter holiday year valentine winter autumn spring celebration party festive",
+"Holidays & Seasons":"christmas halloween easter holiday year valentine winter autumn spring celebration party festive eve resolution firework countdown midnight champagne confetti glitter",
 "Education":"education school student learning book study kids teacher",
 "Lifestyle & People":"family people woman man lifestyle home friends child couple",
 "Culture & Religion":"ramadan eid islamic mosque lantern batik indonesia",
@@ -180,7 +180,7 @@ Renewable energy banner with wind turbines and solar panels, eco background
 Solar farm aerial view, clean energy landscape, sun power`};
 
 const stem=w=>w.length>3&&w.endsWith('ies')?w.slice(0,-3)+'y':(w.length>3&&w.endsWith('s')&&!/(ss|us|is)$/.test(w))?w.slice(0,-1):w;
-const tok=(t,rec)=>(String(t).toLowerCase().match(/[a-z0-9\u00C0-\u024F]+/g)||[]).filter(w=>w.length>2&&!STOP.has(w)).map(w=>{const s=stem(w);if(rec){const r=rec[s]||(rec[s]={});r[w]=(r[w]||0)+1}return s}).filter(w=>!STOP.has(w)&&!/^\d+$/.test(w));
+const tok=(t,rec)=>{const ws=String(t).toLowerCase().match(/[a-z0-9\u00C0-\u024F]+/g)||[];return ws.filter((w,i)=>w.length>2&&(!STOP.has(w)||(w==='new'&&/^year/.test(ws[i+1]||'')))).map(w=>{const s=stem(w);if(rec){const r=rec[s]||(rec[s]={});r[w]=(r[w]||0)+1}return s}).filter(w=>!/^\d+$/.test(w)&&(!STOP.has(w)||w==='new'))};
 const parse=t=>t.split(/[\n\r,;\t|]+/).map(s=>s.replace(/^\s*\d+[.)]\s*/,'').trim()).filter(Boolean);
 const C=s=>s.replace(/\b[a-z]/g,m=>m.toUpperCase());
 let A=null,S={sel:new Set(),queue:[],last:null};
@@ -194,25 +194,25 @@ function analyze(){
   const items=parse($('#raw').value);
   if(!items.length){toast('Tempel data mentah dulu');return false}
   const owned=new Set(parse($('#owned').value).flatMap(tok)),comp=parse($('#comp').value),cm=buildCl();
-  const map={},bi={},cw={},rec={};
+  const map={},bi={},cw={},rec={},recC={};
   items.forEach((it,i)=>{const t=tok(it,rec),pw=1-.5*i/items.length;
     new Set(t).forEach(w=>{const o=map[w]||(map[w]={w,c:0,p:0});o.c++;o.p+=pw});
     for(let j=0;j<t.length-1;j++){const k=t[j]+' '+t[j+1];bi[k]=(bi[k]||0)+1}});
-  comp.forEach(x=>new Set(tok(x)).forEach(w=>cw[w]=(cw[w]||0)+1));
+  comp.forEach(x=>new Set(tok(x,recC)).forEach(w=>cw[w]=(cw[w]||0)+1));
   const list=Object.values(map);if(!list.length){toast('Tidak ada keyword valid');return false}
   const max=Math.max(...list.map(o=>o.c));
   list.forEach(o=>{o.cl=cm.get(o.w)||'Lainnya';o.gap=!owned.has(o.w);o.comp=comp.length?(cw[o.w]||0)/comp.length:null;
     let s=55*o.c/max+20*(o.p/o.c)+(o.gap?25:0);if(o.comp!==null)s-=15*Math.min(1,o.comp*2);
     o.score=Math.max(0,Math.min(100,Math.round(s)))});
   list.sort((a,b)=>b.score-a.score||b.c-a.c);
-  const disp=s=>{const r=rec[s];return r?Object.entries(r).sort((a,b)=>b[1]-a[1]||a[0].length-b[0].length)[0][0]:s};
+  const pick=r=>r?Object.entries(r).sort((a,b)=>b[1]-a[1]||a[0].length-b[0].length)[0][0]:null,disp=s=>pick(rec[s])||s;
   list.forEach(o=>{o.k=o.w;o.w=disp(o.w)});
   const cls={};list.forEach(o=>{const c=cls[o.cl]||(cls[o.cl]={name:o.cl,w:[],tot:0,own:0});c.w.push(o);c.tot+=o.c;if(!o.gap)c.own++});
   const clusters=Object.values(cls).sort((a,b)=>b.tot-a.tot);
   const phrases=Object.entries(bi).sort((a,b)=>b[1]-a[1]).slice(0,20).map(([k,n])=>[k.split(' ').map(disp).join(' '),n,k]);
   let cs=null;
   if(comp.length){cs={n:comp.length,len:Math.round(comp.reduce((a,x)=>a+x.length,0)/comp.length),wc:(comp.reduce((a,x)=>a+x.split(/\s+/).length,0)/comp.length).toFixed(1),
-    top:Object.entries(cw).sort((a,b)=>b[1]-a[1]).slice(0,12),opp:list.filter(o=>!cw[o.k]).slice(0,12)}}
+    top:Object.entries(cw).sort((a,b)=>b[1]-a[1]).slice(0,12).map(([w,n])=>[pick(recC[w])||disp(w),n]),opp:list.filter(o=>!cw[o.k]).slice(0,12)}}
   A={items,list,clusters,phrases,cs,cm};render();return true}
 
 const lbl=s=>s>=70?['hot','Hot']:s>=45?['mid','Potensi']:['low','Rendah'];
@@ -238,7 +238,7 @@ function updSel(){const a=[...S.sel];$('#selN').textContent=a.length?`(${a.lengt
 function gen(p,o){
   const main=p[0],rest=p.slice(1),mt=tok(main),
    T={vector:['vector illustration','isolated on white background'],photo:['photo','with copy space'],video:['video footage','4k seamless loop'],illustration:['illustration','high detail'],icon:['icon set','editable stroke']}[o.type],
-   sty=o.style?o.style+' style':'',
+   pw=new Set(p.join(' ').toLowerCase().match(/[a-z0-9]+/g)||[]),sw=[...new Set(o.style.toLowerCase().replace(/[,;]+/g,' ').split(/\s+/).filter(w=>w&&w!=='style'))].filter(w=>!pw.has(w)).slice(0,2),sS=sw.join(' '),sty=sS?sS+' style':'',
    cut=s=>{s=s.replace(/\s+/g,' ').trim();return s.length<=o.lim?s:s.slice(0,o.lim).replace(/[\s,]+\S*$/,'').replace(/[,\s]+$/,'')},
    r3=rest.slice(0,3).join(', ');
   const titles=[
@@ -248,17 +248,18 @@ function gen(p,o){
   const cl=A?(mt.map(w=>A.cm.get(w)).find(Boolean)||''):'';
   const clw=A&&cl?A.list.filter(x=>x.cl===cl).map(x=>x.w):[];
   const ph=A?A.phrases.filter(([,,sk])=>mt.some(w=>sk.includes(w))).flatMap(([d])=>d.split(' ')):[];
-  const kws=[...new Set([...p.flatMap(x=>x.split(' ')),...ph,...clw,...(o.style?o.style.split(/[\s,]+/):[]),...(o.mod?o.mod.split(/[\s,]+/):[]),...TYPEW[o.type].split(' '),...GEN0].map(x=>x.toLowerCase().trim()).filter(x=>x.length>1))].slice(0,o.kw);
+  const kws=[...new Set([...p.flatMap(x=>x.split(' ')),...ph,...clw,...sw,...(o.mod?o.mod.split(/[\s,]+/):[]),...TYPEW[o.type].split(' '),...GEN0].map(x=>x.toLowerCase().trim()).filter(x=>x.length>1))].slice(0,o.kw);
   const subj=[main,...rest.slice(0,3)].join(', ');
   const prompts={
-   mj:`${subj}, ${o.style||'modern clean style'}, balanced composition, soft studio lighting, high detail, copy space, commercial stock quality --ar 3:2 --style raw --no text, watermark, logo`,
-   gen:`Create a ${o.style||'modern'} ${T[0]} of ${subj}. Keep the composition clean with generous copy space, a cohesive color palette, no text, no logos, no watermark, commercial stock quality, suitable for ${o.type==='video'?'looping footage':'print and web use'}.`,
-   vec:`flat vector illustration of ${subj}, ${o.style||'clean geometric shapes'}, limited palette of 5 harmonious colors, smooth gradients, centered composition, plain white background, no text, no watermark, scalable editable shapes`};
+   mj:`${subj}, ${sty||'modern clean style'}, balanced composition, soft studio lighting, high detail, copy space, commercial stock quality --ar 3:2 --style raw --no text, watermark, logo`,
+   gen:`Create a ${sS||'modern'} ${T[0]} of ${subj}. Keep the composition clean with generous copy space, a cohesive color palette, no text, no logos, no watermark, commercial stock quality, suitable for ${o.type==='video'?'looping footage':'print and web use'}.`,
+   vec:`flat vector illustration of ${subj}, ${sty||'clean geometric shapes'}, limited palette of 5 harmonious colors, smooth gradients, centered composition, plain white background, no text, no watermark, scalable editable shapes`};
   const sc=A?(A.list.find(x=>x.k===mt[0])||{}).score||0:0;
   return{main,titles,kws,prompts,score:sc,cat:cl||'General',type:o.type,lim:o.lim}}
 
 const opts=()=>({type:$('#gType').value,style:$('#gStyle').value.trim(),lim:+$('#gLim').value||200,kw:+$('#gKw').value||50,mod:$('#gMod').value.trim()});
-const picks=()=>{if(S.sel.size)return[...S.sel];return A?A.list.filter(o=>o.gap).slice(0,5).map(o=>o.w):[]};
+const gapPh=()=>A.phrases.filter(([,,sk])=>sk.split(' ').some(w=>A.list.some(o=>o.k===w&&o.gap))).map(x=>x[0]);
+const picks=()=>{if(S.sel.size)return[...S.sel];if(!A)return[];const ph=gapPh()[0],w=A.list.filter(o=>o.gap&&!(ph&&tok(ph).includes(o.k))).slice(0,4).map(o=>o.w);return ph?[ph,...w]:w};
 const ext={vector:'eps',icon:'eps',photo:'jpg',illustration:'jpg',video:'mp4'};
 const slug=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 
@@ -296,8 +297,8 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(
   else if(a==='selcl'){A.clusters.find(c=>c.name===v).w.slice(0,5).forEach(o=>S.sel.add(o.w));updSel();toast('Klaster dipilih')}
   else if(a==='top10'){A.list.filter(o=>o.gap).slice(0,10).forEach(o=>S.sel.add(o.w));updSel()}
   else if(a==='gen'){if(!A&&!analyze())return;const p=picks();if(!p.length)return toast('Pilih keyword dulu');S.last=gen(p,opts());showGen()}
-  else if(a==='auto'){if(!A&&!analyze())return;const o=opts(),top=A.list.filter(x=>x.gap).slice(0,5);if(!top.length)return toast('Tidak ada peluang');
-    top.forEach(x=>{const mates=A.list.filter(y=>y.cl===x.cl&&y.w!==x.w).slice(0,3).map(y=>y.w);pushQ(gen([x.w,...mates],o),0)});showQ();toast('5 aset masuk antrean')}
+  else if(a==='auto'){if(!A&&!analyze())return;const o=opts(),ph=gapPh().slice(0,5),used=new Set(ph.flatMap(x=>tok(x))),top=[...ph,...A.list.filter(x=>x.gap&&!used.has(x.k)).map(x=>x.w)].slice(0,5);if(!top.length)return toast('Tidak ada peluang');
+    top.forEach(c=>{const ct=tok(c),cl=ct.map(w=>A.cm.get(w)).find(Boolean),mates=A.list.filter(y=>cl&&y.cl===cl&&!ct.includes(y.k)).slice(0,3).map(y=>y.w);pushQ(gen([c,...mates],o),0)});showQ();toast('5 aset masuk antrean')}
   else if(a==='addq'){const r=document.querySelector('input[name=tv]:checked');pushQ(S.last,r?+r.value:0);showQ();toast('Ditambahkan')}
   else if(a==='rmq'){S.queue.splice(+v,1);showQ()}
   else if(a==='qclear'){S.queue=[];showQ()}
