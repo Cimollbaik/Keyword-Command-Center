@@ -180,7 +180,7 @@ Renewable energy banner with wind turbines and solar panels, eco background
 Solar farm aerial view, clean energy landscape, sun power`};
 
 const stem=w=>w.length>3&&w.endsWith('ies')?w.slice(0,-3)+'y':(w.length>3&&w.endsWith('s')&&!/(ss|us|is)$/.test(w))?w.slice(0,-1):w;
-const tok=t=>(String(t).toLowerCase().match(/[a-z0-9\u00C0-\u024F]+/g)||[]).filter(w=>w.length>2&&!STOP.has(w)).map(stem).filter(w=>!STOP.has(w)&&!/^\d+$/.test(w));
+const tok=(t,rec)=>(String(t).toLowerCase().match(/[a-z0-9\u00C0-\u024F]+/g)||[]).filter(w=>w.length>2&&!STOP.has(w)).map(w=>{const s=stem(w);if(rec){const r=rec[s]||(rec[s]={});r[w]=(r[w]||0)+1}return s}).filter(w=>!STOP.has(w)&&!/^\d+$/.test(w));
 const parse=t=>t.split(/[\n\r,;\t|]+/).map(s=>s.replace(/^\s*\d+[.)]\s*/,'').trim()).filter(Boolean);
 const C=s=>s.replace(/\b[a-z]/g,m=>m.toUpperCase());
 let A=null,S={sel:new Set(),queue:[],last:null};
@@ -194,8 +194,8 @@ function analyze(){
   const items=parse($('#raw').value);
   if(!items.length){toast('Tempel data mentah dulu');return false}
   const owned=new Set(parse($('#owned').value).flatMap(tok)),comp=parse($('#comp').value),cm=buildCl();
-  const map={},bi={},cw={};
-  items.forEach((it,i)=>{const t=tok(it),pw=1-.5*i/items.length;
+  const map={},bi={},cw={},rec={};
+  items.forEach((it,i)=>{const t=tok(it,rec),pw=1-.5*i/items.length;
     new Set(t).forEach(w=>{const o=map[w]||(map[w]={w,c:0,p:0});o.c++;o.p+=pw});
     for(let j=0;j<t.length-1;j++){const k=t[j]+' '+t[j+1];bi[k]=(bi[k]||0)+1}});
   comp.forEach(x=>new Set(tok(x)).forEach(w=>cw[w]=(cw[w]||0)+1));
@@ -205,12 +205,14 @@ function analyze(){
     let s=55*o.c/max+20*(o.p/o.c)+(o.gap?25:0);if(o.comp!==null)s-=15*Math.min(1,o.comp*2);
     o.score=Math.max(0,Math.min(100,Math.round(s)))});
   list.sort((a,b)=>b.score-a.score||b.c-a.c);
+  const disp=s=>{const r=rec[s];return r?Object.entries(r).sort((a,b)=>b[1]-a[1]||a[0].length-b[0].length)[0][0]:s};
+  list.forEach(o=>{o.k=o.w;o.w=disp(o.w)});
   const cls={};list.forEach(o=>{const c=cls[o.cl]||(cls[o.cl]={name:o.cl,w:[],tot:0,own:0});c.w.push(o);c.tot+=o.c;if(!o.gap)c.own++});
   const clusters=Object.values(cls).sort((a,b)=>b.tot-a.tot);
-  const phrases=Object.entries(bi).sort((a,b)=>b[1]-a[1]).slice(0,20);
+  const phrases=Object.entries(bi).sort((a,b)=>b[1]-a[1]).slice(0,20).map(([k,n])=>[k.split(' ').map(disp).join(' '),n,k]);
   let cs=null;
   if(comp.length){cs={n:comp.length,len:Math.round(comp.reduce((a,x)=>a+x.length,0)/comp.length),wc:(comp.reduce((a,x)=>a+x.split(/\s+/).length,0)/comp.length).toFixed(1),
-    top:Object.entries(cw).sort((a,b)=>b[1]-a[1]).slice(0,12),opp:list.filter(o=>!cw[o.w]).slice(0,12)}}
+    top:Object.entries(cw).sort((a,b)=>b[1]-a[1]).slice(0,12),opp:list.filter(o=>!cw[o.k]).slice(0,12)}}
   A={items,list,clusters,phrases,cs,cm};render();return true}
 
 const lbl=s=>s>=70?['hot','Hot']:s>=45?['mid','Potensi']:['low','Rendah'];
@@ -245,14 +247,14 @@ function gen(p,o){
     cut(p.slice(0,6).map(C).join(', ')+` ${T[0]}${sty?', '+sty:''}`)];
   const cl=A?(mt.map(w=>A.cm.get(w)).find(Boolean)||''):'';
   const clw=A&&cl?A.list.filter(x=>x.cl===cl).map(x=>x.w):[];
-  const ph=A?A.phrases.filter(([k])=>mt.some(w=>k.includes(w))).flatMap(([k])=>k.split(' ')):[];
+  const ph=A?A.phrases.filter(([,,sk])=>mt.some(w=>sk.includes(w))).flatMap(([d])=>d.split(' ')):[];
   const kws=[...new Set([...p.flatMap(x=>x.split(' ')),...ph,...clw,...(o.style?o.style.split(/[\s,]+/):[]),...(o.mod?o.mod.split(/[\s,]+/):[]),...TYPEW[o.type].split(' '),...GEN0].map(x=>x.toLowerCase().trim()).filter(x=>x.length>1))].slice(0,o.kw);
   const subj=[main,...rest.slice(0,3)].join(', ');
   const prompts={
    mj:`${subj}, ${o.style||'modern clean style'}, balanced composition, soft studio lighting, high detail, copy space, commercial stock quality --ar 3:2 --style raw --no text, watermark, logo`,
    gen:`Create a ${o.style||'modern'} ${T[0]} of ${subj}. Keep the composition clean with generous copy space, a cohesive color palette, no text, no logos, no watermark, commercial stock quality, suitable for ${o.type==='video'?'looping footage':'print and web use'}.`,
    vec:`flat vector illustration of ${subj}, ${o.style||'clean geometric shapes'}, limited palette of 5 harmonious colors, smooth gradients, centered composition, plain white background, no text, no watermark, scalable editable shapes`};
-  const sc=A?(A.list.find(x=>x.w===mt[0])||{}).score||0:0;
+  const sc=A?(A.list.find(x=>x.k===mt[0])||{}).score||0:0;
   return{main,titles,kws,prompts,score:sc,cat:cl||'General',type:o.type,lim:o.lim}}
 
 const opts=()=>({type:$('#gType').value,style:$('#gStyle').value.trim(),lim:+$('#gLim').value||200,kw:+$('#gKw').value||50,mod:$('#gMod').value.trim()});
